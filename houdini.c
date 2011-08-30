@@ -5,6 +5,20 @@
 #include "houdini.h"
 #include "html_unescape.h"
 
+#define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10) /* this is very scientific, yes */
+#define UNESCAPE_GROW_FACTOR(x) (x) /* unescaping shouldn't grow our buffer */
+
+/**
+ * According to the OWASP rules:
+ *
+ * & --> &amp;
+ * < --> &lt;
+ * > --> &gt;
+ * " --> &quot;
+ * ' --> &#x27;     &apos; is not recommended
+ * / --> &#x2F;     forward slash is included as it helps end an HTML entity
+ *
+ */
 static const char HTML_ESCAPE_TABLE[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
@@ -26,29 +40,12 @@ static const char *HTML_ESCAPES[] = {
         "&gt;"
 };
 
-static signed char HEX_DIGITS[] = {
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 00 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 10 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 20 */
-	 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1, /* 30 */
-	-1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 40 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 50 */
-	-1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 60 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 70 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 80 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* 90 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* a0 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* b0 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* c0 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* d0 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* e0 */
-	-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, /* f0 */
-};
-
 void
 houdini_escape_html(struct buf *ob, const char *src, size_t size)
 {
 	size_t  i = 0, org, esc;
+
+	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
 
 	while (i < size) {
 		org = i;
@@ -69,7 +66,7 @@ houdini_escape_html(struct buf *ob, const char *src, size_t size)
 	}
 }
 
-static void
+static inline void
 bufput_utf8(struct buf *ob, int c)
 {
 	if (c < 0x80) {
@@ -103,7 +100,7 @@ bufput_utf8(struct buf *ob, int c)
 	}
 }
 
-static inline size_t
+static size_t
 unescape_ent(struct buf *ob, const char *src, size_t size)
 {
 	size_t i = 0;
@@ -111,26 +108,14 @@ unescape_ent(struct buf *ob, const char *src, size_t size)
 	if (size > 3 && src[0] == '#') {
 		int codepoint = 0;
 
-		i = i + 1;
-		
 		if (isdigit(src[1])) {
-			do {
+			for (i = 1; i < size && isdigit(src[i]); ++i)
 				codepoint = (codepoint * 10) + (src[i] - '0');
-				i++;
-			} while (i < size && isdigit(src[i]));
 		}
 
 		else if (src[1] == 'x' || src[1] == 'X') {
-			i = i + 1; /* skip x prefix */
-
-			while (i < size) {
-				int digit = HEX_DIGITS[src[i]];
-				if (digit < 0)
-					break;
-
-				codepoint = (codepoint * 16) + digit;
-				i++;
-			}
+			for (i = 2; i < size && isxdigit(src[i]); ++i)
+				codepoint = (codepoint * 16) + ((src[i] | 32) % 39 - 9);
 		}
 
 		if (i < size && src[i] == ';') {
@@ -170,6 +155,8 @@ houdini_unescape_html(struct buf *ob, const char *src, size_t size)
 {
 	size_t  i = 0, org;
 
+	bufgrow(ob, UNESCAPE_GROW_FACTOR(size));
+
 	while (i < size) {
 		org = i;
 		while (i < size && src[i] != '&')
@@ -187,6 +174,7 @@ houdini_unescape_html(struct buf *ob, const char *src, size_t size)
 	}
 }
 
+#define TEST
 #ifdef TEST
 
 int main()
