@@ -174,7 +174,6 @@ houdini_unescape_html(struct buf *ob, const char *src, size_t size)
 	}
 }
 
-#define TEST
 #ifdef TEST
 
 int main()
