@@ -61,13 +61,13 @@ unescape(struct buf *ob, const char *src, size_t size, int is_url)
 		if (i > org)
 			bufput(ob, src + org, i - org);
 
+		/* escaping */
+		if (i >= size)
+			break;
+
 		i++;
 
-		/* escaping */
-		if (i + 1 >= size)
-			continue;
-
-		if (isxdigit(src[i]) && isxdigit(src[i + 1])) {
+		if (i + 1 < size && isxdigit(src[i]) && isxdigit(src[i + 1])) {
 			unsigned char new_char = (hex2c(src[i]) << 4) + hex2c(src[i + 1]);
 			bufputc(ob, new_char);
 			i += 2;
@@ -110,17 +110,18 @@ houdini_unescape_url(struct buf *ob, const char *src, size_t size)
 
 
 
+//#define TEST
 #ifdef TEST
 
 int main()
 {
-/*	const char TEST_STRING[] = "This &#x2663; is & just &quot;an example&diams;&quot;";
+	const char TEST_STRING[] = "http%";
 	struct buf *buffer;
 
 	buffer = bufnew(128);
-	houdini_unescape_html(buffer, TEST_STRING, strlen(TEST_STRING));
+	houdini_unescape_uri(buffer, TEST_STRING, strlen(TEST_STRING));
 	printf("Result: %.*s\n", (int)buffer->size, buffer->data);
-	bufrelease(buffer); */
+	bufrelease(buffer);
 	return 0;
 }
 #endif
