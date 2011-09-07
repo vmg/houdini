@@ -27,7 +27,15 @@ static const char HTML_ESCAPE_TABLE[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
 static const char *HTML_ESCAPES[] = {
@@ -41,7 +49,7 @@ static const char *HTML_ESCAPES[] = {
 };
 
 void
-houdini_escape_html(struct buf *ob, const char *src, size_t size)
+houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size)
 {
 	size_t  i = 0, org, esc;
 
@@ -49,9 +57,7 @@ houdini_escape_html(struct buf *ob, const char *src, size_t size)
 
 	while (i < size) {
 		org = i;
-		while (i < size &&
-			(esc = HTML_ESCAPE_TABLE[src[i] & 0x7F]) == 0 &&
-			(src[i] & ~0x7F) == 0)
+		while (i < size && (esc = HTML_ESCAPE_TABLE[src[i]]) == 0)
 			i++;
 
 		if (i > org)
@@ -69,39 +75,39 @@ houdini_escape_html(struct buf *ob, const char *src, size_t size)
 static inline void
 bufput_utf8(struct buf *ob, int c)
 {
+	unsigned char unichar[4];
+
 	if (c < 0x80) {
 		bufputc(ob, c);
 	}
-
 	else if (c < 0x800) {
-		bufputc(ob, 192 + (c / 64));
-		bufputc(ob, 128 + (c % 64));
+		unichar[0] = 192 + (c / 64);
+		unichar[1] = 128 + (c % 64);
+		bufput(ob, unichar, 2);
 	}
-	
 	else if (c - 0xd800u < 0x800) {
 		bufputc(ob, '?');
 	}
-
 	else if (c < 0x10000) {
-		bufputc(ob, 224 + (c / 4096));
-		bufputc(ob, 128 + (c / 64) % 64);
-		bufputc(ob, 128 + (c % 64));
+		unichar[0] = 224 + (c / 4096);
+		unichar[1] = 128 + (c / 64) % 64;
+		unichar[2] = 128 + (c % 64);
+		bufput(ob, unichar, 3);
 	}
-
 	else if (c < 0x110000) {
-		bufputc(ob, 240 + (c / 262144));
-		bufputc(ob, 128 + (c / 4096) % 64);
-		bufputc(ob, 128 + (c / 64) % 64);
-		bufputc(ob, 128 + (c % 64));
+		unichar[0] = 240 + (c / 262144);
+		unichar[1] = 128 + (c / 4096) % 64;
+		unichar[2] = 128 + (c / 64) % 64;
+		unichar[3] = 128 + (c % 64);
+		bufput(ob, unichar, 4);
 	}
-
 	else {
 		bufputc(ob, '?');
 	}
 }
 
 static size_t
-unescape_ent(struct buf *ob, const char *src, size_t size)
+unescape_ent(struct buf *ob, const uint8_t *src, size_t size)
 {
 	size_t i = 0;
 
@@ -151,7 +157,7 @@ unescape_ent(struct buf *ob, const char *src, size_t size)
 }
 
 void
-houdini_unescape_html(struct buf *ob, const char *src, size_t size)
+houdini_unescape_html(struct buf *ob, const uint8_t *src, size_t size)
 {
 	size_t  i = 0, org;
 

@@ -9,7 +9,7 @@
 #define UNESCAPE_GROW_FACTOR(x) (x)
 
 static void
-escape(struct buf *ob, const char *src, size_t size, int is_url)
+escape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
 {
 	static const char hex_chars[] = "0123456789ABCDEF";
 	const char *safe_table = is_url ? URL_SAFE : URI_SAFE;
@@ -47,7 +47,7 @@ escape(struct buf *ob, const char *src, size_t size, int is_url)
 #define hex2c(c) ((c | 32) % 39 - 9)
 
 static void
-unescape(struct buf *ob, const char *src, size_t size, int is_url)
+unescape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
 {
 	size_t  i = 0, org;
 
@@ -85,25 +85,25 @@ unescape(struct buf *ob, const char *src, size_t size, int is_url)
 
 
 void
-houdini_escape_uri(struct buf *ob, const char *src, size_t size)
+houdini_escape_uri(struct buf *ob, const uint8_t *src, size_t size)
 {
 	return escape(ob, src, size, 0);
 }
 
 void
-houdini_escape_url(struct buf *ob, const char *src, size_t size)
+houdini_escape_url(struct buf *ob, const uint8_t *src, size_t size)
 {
 	return escape(ob, src, size, 1);
 }
 
 void
-houdini_unescape_uri(struct buf *ob, const char *src, size_t size)
+houdini_unescape_uri(struct buf *ob, const uint8_t *src, size_t size)
 {
 	return unescape(ob, src, size, 0);
 }
 
 void
-houdini_unescape_url(struct buf *ob, const char *src, size_t size)
+houdini_unescape_url(struct buf *ob, const uint8_t *src, size_t size)
 {
 	return unescape(ob, src, size, 1);
 }
