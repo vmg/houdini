@@ -8,13 +8,15 @@
 #define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10)
 #define UNESCAPE_GROW_FACTOR(x) (x)
 
+extern int _isxdigit(int c);
+
 static void
 escape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
 {
 	static const char hex_chars[] = "0123456789ABCDEF";
 	const char *safe_table = is_url ? URL_SAFE : URI_SAFE;
 
-	size_t  i = 0, org, esc;
+	size_t  i = 0, org;
 	char hex_str[3];
 
 	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
@@ -22,7 +24,7 @@ escape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
 
 	while (i < size) {
 		org = i;
-		while (i < size && safe_table[(int)src[i]])
+		while (i < size && safe_table[src[i]] != 0)
 			i++;
 
 		if (i > org)
@@ -67,7 +69,7 @@ unescape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
 
 		i++;
 
-		if (i + 1 < size && isxdigit(src[i]) && isxdigit(src[i + 1])) {
+		if (i + 1 < size && _isxdigit(src[i]) && _isxdigit(src[i + 1])) {
 			unsigned char new_char = (hex2c(src[i]) << 4) + hex2c(src[i + 1]);
 			bufputc(ob, new_char);
 			i += 2;
@@ -115,11 +117,11 @@ houdini_unescape_url(struct buf *ob, const uint8_t *src, size_t size)
 
 int main()
 {
-	const char TEST_STRING[] = "http%";
+	const char TEST_STRING[] = "http% this \200 is a test";
 	struct buf *buffer;
 
 	buffer = bufnew(128);
-	houdini_unescape_uri(buffer, TEST_STRING, strlen(TEST_STRING));
+	houdini_escape_uri(buffer, TEST_STRING, strlen(TEST_STRING));
 	printf("Result: %.*s\n", (int)buffer->size, buffer->data);
 	bufrelease(buffer);
 	return 0;

@@ -8,6 +8,18 @@
 #define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10) /* this is very scientific, yes */
 #define UNESCAPE_GROW_FACTOR(x) (x) /* unescaping shouldn't grow our buffer */
 
+/* Helper _isdigit methods -- do not trust the current locale */
+int _isxdigit(int c)
+{
+	return strchr("0123456789ABCDEFabcdef", c) != NULL;
+}
+
+int _isdigit(int c)
+{
+	return (c >= '0' && c <= '9');
+}
+
+
 /**
  * According to the OWASP rules:
  *
@@ -49,7 +61,7 @@ static const char *HTML_ESCAPES[] = {
 };
 
 void
-houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size)
+houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size, int secure)
 {
 	size_t  i = 0, org, esc;
 
@@ -67,7 +79,13 @@ houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size)
 		if (i >= size)
 			break;
 
-		bufputs(ob, HTML_ESCAPES[esc]);
+		/* The forward slash is only escaped in secure mode */
+		if (src[i] == '/' && !secure) {
+			bufputc(ob, '/');
+		} else {
+			bufputs(ob, HTML_ESCAPES[esc]);
+		}
+
 		i++;
 	}
 }
@@ -114,13 +132,13 @@ unescape_ent(struct buf *ob, const uint8_t *src, size_t size)
 	if (size > 3 && src[0] == '#') {
 		int codepoint = 0;
 
-		if (isdigit(src[1])) {
-			for (i = 1; i < size && isdigit(src[i]); ++i)
+		if (_isdigit(src[1])) {
+			for (i = 1; i < size && _isdigit(src[i]); ++i)
 				codepoint = (codepoint * 10) + (src[i] - '0');
 		}
 
 		else if (src[1] == 'x' || src[1] == 'X') {
-			for (i = 2; i < size && isxdigit(src[i]); ++i)
+			for (i = 2; i < size && _isxdigit(src[i]); ++i)
 				codepoint = (codepoint * 16) + ((src[i] | 32) % 39 - 9);
 		}
 
@@ -139,8 +157,7 @@ unescape_ent(struct buf *ob, const uint8_t *src, size_t size)
 				break;
 
 			if (src[i] == ';') {
-				const struct html_ent *entity = 
-					find_entity(src, i);
+				const struct html_ent *entity = find_entity((char *)src, i);
 
 				if (entity != NULL) {
 					bufput(ob, entity->utf8, entity->utf8_len);
