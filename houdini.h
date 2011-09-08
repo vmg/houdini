@@ -3,6 +3,24 @@
 
 #include "buffer.h"
 
+#ifdef HOUDINI_USE_LOCALE
+#	define _isxdigit(c) isxdigit(c)
+#	define _isdigit(c) isdigit(c)
+#else
+/*
+ * Helper _isdigit methods -- do not trust the current locale
+ * */
+static int _isxdigit(int c)
+{
+	return strchr("0123456789ABCDEFabcdef", c) != NULL;
+}
+
+static int _isdigit(int c)
+{
+	return (c >= '0' && c <= '9');
+}
+#endif
+
 extern void houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size, int secure);
 extern void houdini_unescape_html(struct buf *ob, const uint8_t *src, size_t size);
 extern void houdini_escape_uri(struct buf *ob, const uint8_t *src, size_t size);

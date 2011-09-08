@@ -5,53 +5,6 @@
 #include "houdini.h"
 
 #define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10)
-#define UNESCAPE_GROW_FACTOR(x) (x)
-
-void
-houdini_unescape_js(struct buf *ob, const uint8_t *src, size_t size)
-{
-	size_t  i = 0, org, ch;
-
-	bufgrow(ob, UNESCAPE_GROW_FACTOR(size));
-
-	while (i < size) {
-		org = i;
-		while (i < size && src[i] != '\\')
-			i++;
-
-		if (i > org)
-			bufput(ob, src + org, i - org);
-
-		/* escaping */
-		if (i == size)
-			break;
-
-		if (++i == size) {
-			bufputc(ob, '\\');
-			break;
-		}
-
-		ch = src[i];
-
-		switch (ch) {
-		case 'n':
-			ch = '\n';
-			/* pass through */
-
-		case '\\':
-		case '\'':
-		case '\"':
-		case '/':
-			bufputc(ob, ch);
-			i++;
-			break;
-
-		default:
-			bufputc(ob, '\\');
-			break;
-		}
-	}
-}
 
 static const char JS_ESCAPE[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 
@@ -128,21 +81,4 @@ houdini_escape_js(struct buf *ob, const uint8_t *src, size_t size)
 		i++;
 	}
 }
-
-
-//#define TEST
-#ifdef TEST
-
-int main()
-{
-	const char TEST_STRING[] = "http% this \200 is a test";
-	struct buf *buffer;
-
-	buffer = bufnew(128);
-	houdini_escape_uri(buffer, TEST_STRING, strlen(TEST_STRING));
-	printf("Result: %.*s\n", (int)buffer->size, buffer->data);
-	bufrelease(buffer);
-	return 0;
-}
-#endif
 
