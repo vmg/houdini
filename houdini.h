@@ -21,7 +21,8 @@ static int _isdigit(int c)
 }
 #endif
 
-extern void houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size, int secure);
+extern void houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size);
+extern void houdini_escape_html0(struct buf *ob, const uint8_t *src, size_t size, int secure);
 extern void houdini_unescape_html(struct buf *ob, const uint8_t *src, size_t size);
 extern void houdini_escape_uri(struct buf *ob, const uint8_t *src, size_t size);
 extern void houdini_escape_url(struct buf *ob, const uint8_t *src, size_t size);
