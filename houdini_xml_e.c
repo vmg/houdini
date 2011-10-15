@@ -33,6 +33,7 @@ static const char *LOOKUP_CODES[] = {
 };
 
 static const char CODE_INVALID = 5;
+static const char CODE_FORWARD_SLASH = 9;
 
 static const char XML_LOOKUP_TABLE[] = {
 	/* ASCII: 0xxxxxxx */
@@ -68,7 +69,7 @@ static const char XML_LOOKUP_TABLE[] = {
 };
 
 void
-houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
+houdini_escape_xml0(struct buf *ob, const uint8_t *src, size_t size, int secure)
 {
 	size_t i = 0;
 	unsigned char code;
@@ -87,10 +88,10 @@ houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 			code = XML_LOOKUP_TABLE[byte];
 
 			if (!code) {
-				end = i;
-				continue;
+				/* single character used literally */
 			} else if (code >= CODE_INVALID) {
-				break; /* insert lookup code string */
+				if (code != CODE_FORWARD_SLASH || secure)
+					break; /* insert lookup code string */
 			} else if (code > size - end) {
 				code = CODE_INVALID; /* truncated UTF-8 character */
 				break;
@@ -126,8 +127,8 @@ houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 				}
 				if (code == CODE_INVALID)
 					break;
-				end = i;
 			}
+			end = i;
 		}
 
 		if (end > start)
@@ -139,4 +140,10 @@ houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 
 		bufputs(ob, LOOKUP_CODES[code]);
 	}
+}
+
+void
+houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
+{
+	houdini_escape_xml0(ob, src, size, 1);
 }
