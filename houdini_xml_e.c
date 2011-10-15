@@ -14,7 +14,6 @@
  * > --> &gt;
  * " --> &quot;
  * ' --> &#x27;     &apos; is not recommended
- * / --> &#x2F;     forward slash is included as it helps end an XML entity
  *
  */
 static const char *LOOKUP_CODES[] = {
@@ -27,20 +26,18 @@ static const char *LOOKUP_CODES[] = {
 	"&quot;",
 	"&amp;",
 	"&#39;",
-	"&#47;",
 	"&lt;",
 	"&gt;"
 };
 
 static const char CODE_INVALID = 5;
-static const char CODE_FORWARD_SLASH = 9;
 
 static const char XML_LOOKUP_TABLE[] = {
 	/* ASCII: 0xxxxxxx */
 	5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 5, 5, 0, 5, 5,
 	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-	0, 0, 6, 0, 0, 0, 7, 8, 0, 0, 0, 0, 0, 0, 0, 9,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,10, 0,11, 0,
+	0, 0, 6, 0, 0, 0, 7, 8, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0,10, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -69,7 +66,7 @@ static const char XML_LOOKUP_TABLE[] = {
 };
 
 void
-houdini_escape_xml0(struct buf *ob, const uint8_t *src, size_t size, int secure)
+houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 {
 	size_t i = 0;
 	unsigned char code;
@@ -90,8 +87,7 @@ houdini_escape_xml0(struct buf *ob, const uint8_t *src, size_t size, int secure)
 			if (!code) {
 				/* single character used literally */
 			} else if (code >= CODE_INVALID) {
-				if (code != CODE_FORWARD_SLASH || secure)
-					break; /* insert lookup code string */
+				break; /* insert lookup code string */
 			} else if (code > size - end) {
 				code = CODE_INVALID; /* truncated UTF-8 character */
 				break;
@@ -140,10 +136,4 @@ houdini_escape_xml0(struct buf *ob, const uint8_t *src, size_t size, int secure)
 
 		bufputs(ob, LOOKUP_CODES[code]);
 	}
-}
-
-void
-houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
-{
-	houdini_escape_xml0(ob, src, size, 1);
 }
