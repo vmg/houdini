@@ -7,14 +7,11 @@
 #define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10) /* this is very scientific, yes */
 
 /**
- * According to the OWASP rules:
- *
  * & --> &amp;
  * < --> &lt;
  * > --> &gt;
  * " --> &quot;
- * ' --> &#x27;     &apos; is not recommended
- *
+ * ' --> &apos;
  */
 static const char *LOOKUP_CODES[] = {
 	"", /* reserved: use literal single character */
@@ -25,7 +22,7 @@ static const char *LOOKUP_CODES[] = {
 	"?", /* invalid UTF-8 character */
 	"&quot;",
 	"&amp;",
-	"&#39;",
+	"&apos;",
 	"&lt;",
 	"&gt;"
 };
