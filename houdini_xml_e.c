@@ -19,13 +19,11 @@
  */
 static const char *LOOKUP_CODES[] = {
 	"", /* reserved: use literal single character */
-	"", /* reserved */
+	"", /* unused */
 	"", /* reserved: 2 character UTF-8 */
 	"", /* reserved: 3 character UTF-8 */
 	"", /* reserved: 4 character UTF-8 */
-	"", /* reserved: 5 character UTF-8 */
-	"", /* reserved: 6 character UTF-8 */
-	"?",
+	"?", /* invalid UTF-8 character */
 	"&quot;",
 	"&amp;",
 	"&#39;",
@@ -34,22 +32,24 @@ static const char *LOOKUP_CODES[] = {
 	"&gt;"
 };
 
+static const char CODE_INVALID = 5;
+
 static const char XML_LOOKUP_TABLE[] = {
 	/* ASCII: 0xxxxxxx */
-	7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 0, 7, 7, 0, 7, 7,
-	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-	0, 0, 8, 0, 0, 0, 9, 10,0, 0, 0, 0, 0, 0, 0,11,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,12, 0,13, 0,
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 5, 5, 0, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+	0, 0, 6, 0, 0, 0, 7, 8, 0, 0, 0, 0, 0, 0, 0, 9,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,10, 0,11, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
-	/* Invalid UTF-8: 10xxxxxx */
-	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-	7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+	/* Invalid UTF-8 char start: 10xxxxxx */
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
 
 	/* Multibyte UTF-8 */
 
@@ -63,65 +63,80 @@ static const char XML_LOOKUP_TABLE[] = {
 	/* 4 bytes: 11110xxx */
 	4, 4, 4, 4, 4, 4, 4, 4,
 
-	/* 5 bytes: 111110xx */
-	5, 5, 5, 5,
-
-	/* 6 bytes: 1111110x */
-	6, 6,
-
-	/* Invalid UTF-8: 1111111x */
-	7, 7,
+	/* Invalid UTF-8: 11111xxx */
+	5, 5, 5, 5, 5, 5, 5, 5,
 };
 
 void
 houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 {
-	size_t  i = 0, org, code;
+	size_t i = 0;
+	unsigned char code;
 
 	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
 
 	while (i < size) {
-		org = i;
-		while (i < size && (code = XML_LOOKUP_TABLE[src[i]]) == 0)
-			i++;
+		unsigned int start, end;
 
-		if (i > org)
-			bufput(ob, src + org, i - org);
+		start = end = i;
 
-		/* escaping */
-		if (i >= size)
-			break;
+		while (i < size) {
+			unsigned int byte;
 
-		if (code < 7) { /* multibyte UTF-8 or escaped character */
-			if (code > size - i) {
-				/* truncated UTF-8 character */
-				bufputc(ob, '?');
+			byte = src[i++];
+			code = XML_LOOKUP_TABLE[byte];
+
+			if (!code) {
+				end = i;
+				continue;
+			} else if (code >= CODE_INVALID) {
+				break; /* insert lookup code string */
+			} else if (code > size - end) {
+				code = CODE_INVALID; /* truncated UTF-8 character */
 				break;
 			} else {
-				unsigned int chr = src[i++];
+				unsigned int chr = byte & (0xff >> code);
 
-				chr &= 0xff >> code;
-				while (--code)
-					chr = (chr << 6) + (src[i++] & 0x3f);
-
-				if (chr < 0x80) {
-					code = XML_LOOKUP_TABLE[chr];
-					if (code)
-						bufputs(ob, LOOKUP_CODES[code]);
-					else
-						bufputc(ob, chr);
-				} else if (chr < 0xd800 ||
-				           (chr >= 0xe000 && chr <= 0xfffd) ||
-				           (chr >= 0x10000 && chr <= 0x10ffff))
-				{
-					bufprintf(ob, "&#x%x;", chr);
-				} else {
-					bufputc(ob, '?');
+				while (--code) {
+					byte = src[i++];
+					if ((byte & 0xc0) != 0x80) {
+						code = CODE_INVALID;
+						break;
+					}
+					chr = (chr << 6) + (byte & 0x3f);
 				}
+
+				switch (i - end) {
+					case 2:
+						if (chr < 0x80)
+							code = CODE_INVALID;
+						break;
+					case 3:
+						if (chr < 0x800 ||
+						    (chr > 0xd7ff && chr < 0xe000) ||
+                                                    chr > 0xfffd)
+							code = CODE_INVALID;
+						break;
+					case 4:
+						if (chr < 0x10000 || chr > 0x10ffff)
+							code = CODE_INVALID;
+						break;
+					default:
+						break;
+				}
+				if (code == CODE_INVALID)
+					break;
+				end = i;
 			}
-		} else {
-			bufputs(ob, LOOKUP_CODES[code]);
-			i++;
 		}
+
+		if (end > start)
+			bufput(ob, src + start, end - start);
+
+		/* escaping */
+		if (end >= size)
+			break;
+
+		bufputs(ob, LOOKUP_CODES[code]);
 	}
 }
