@@ -71,7 +71,7 @@ houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
 
 	while (i < size) {
-		unsigned int start, end;
+		size_t start, end;
 
 		start = end = i;
 
@@ -108,7 +108,7 @@ houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 					case 3:
 						if (chr < 0x800 ||
 						    (chr > 0xd7ff && chr < 0xe000) ||
-                                                    chr > 0xfffd)
+							chr > 0xfffd)
 							code = CODE_INVALID;
 						break;
 					case 4:
