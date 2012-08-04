@@ -18,6 +18,10 @@
 #ifndef __GEN_BUFFER_H__
 #define __GEN_BUFFER_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stddef.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -87,5 +91,9 @@ void bufprintf(struct buf *, const char *, ...) __attribute__ ((format (printf, 
 
 /* vbufprintf: stdarg variant of formatted printing into a buffer */
 void vbufprintf(struct buf *, const char * , va_list);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,6 +1,10 @@
 #ifndef __HOUDINI_H__
 #define __HOUDINI_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "buffer.h"
 
 #ifdef HOUDINI_USE_LOCALE
@@ -25,5 +29,9 @@ extern void houdini_unescape_uri(struct buf *ob, const uint8_t *src, size_t size
 extern void houdini_unescape_url(struct buf *ob, const uint8_t *src, size_t size);
 extern void houdini_escape_js(struct buf *ob, const uint8_t *src, size_t size);
 extern void houdini_unescape_js(struct buf *ob, const uint8_t *src, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

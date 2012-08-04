@@ -66,7 +66,7 @@ void
 houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 {
 	size_t i = 0;
-	unsigned char code;
+	unsigned char code = 0;
 
 	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
 
