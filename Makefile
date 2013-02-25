@@ -40,7 +40,7 @@ SED ?= sed
 
 CFLAGS ?= -O2
 # -Wno-missing-field-initializers - gperf's header doesn't pass on -Wextra
-MANDATORY_FLAGS := -Wall -Wextra -Werror -Wno-missing-field-initializers
+MANDATORY_FLAGS := -Wall -Wextra -Wno-missing-field-initializers
 override CFLAGS := $(MANDATORY_FLAGS) $(CFLAGS)
 
 .PHONY: all clean objects package

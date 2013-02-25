@@ -10,16 +10,16 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdarg.h>
-#include <stdint.h>
 #include <sys/types.h>
+#include <stdint.h>
 
 typedef struct {
-	uint8_t *ptr;
+	char *ptr;
 	size_t asize, size;
 } gh_buf;
 
-extern uint8_t gh_buf__initbuf[];
-extern uint8_t gh_buf__oom[];
+extern char gh_buf__initbuf[];
+extern char gh_buf__oom[];
 
 #define GH_BUF_INIT { gh_buf__initbuf, 0, 0 }
 
@@ -56,8 +56,6 @@ static inline int gh_buf_grow(gh_buf *buf, size_t target_size)
 
 extern void gh_buf_free(gh_buf *buf);
 extern void gh_buf_swap(gh_buf *buf_a, gh_buf *buf_b);
-extern uint8_t *gh_buf_detach(gh_buf *buf);
-extern void gh_buf_attach(gh_buf *buf, uint8_t *ptr, size_t asize);
 
 /**
  * Test if there have been any reallocation failures with this gh_buf.
@@ -75,6 +73,23 @@ static inline bool gh_buf_oom(const gh_buf *buf)
 	return (buf->ptr == gh_buf__oom);
 }
 
+
+static inline size_t gh_buf_len(const gh_buf *buf)
+{
+	return buf->size;
+}
+
+extern int gh_buf_cmp(const gh_buf *a, const gh_buf *b);
+
+extern void gh_buf_attach(gh_buf *buf, char *ptr, size_t asize);
+extern char *gh_buf_detach(gh_buf *buf);
+extern void gh_buf_copy_cstr(char *data, size_t datasize, const gh_buf *buf);
+
+static inline const char *gh_buf_cstr(const gh_buf *buf)
+{
+	return buf->ptr;
+}
+
 /*
  * Functions below that return int value error codes will return 0 on
  * success or -1 on failure (which generally means an allocation failed).
@@ -83,33 +98,16 @@ static inline bool gh_buf_oom(const gh_buf *buf)
  * return code of these functions and call them in a series then just call
  * gh_buf_oom at the end.
  */
-int gh_buf_set(gh_buf *buf, const uint8_t *data, size_t len);
-int gh_buf_sets(gh_buf *buf, const uint8_t *string);
-int gh_buf_putc(gh_buf *buf, int c);
-int gh_buf_put(gh_buf *buf, const uint8_t *data, size_t len);
-int gh_buf_puts(gh_buf *buf, const char *string);
-int gh_buf_printf(gh_buf *buf, const char *format, ...) __attribute__((format (printf, 2, 3)));
-int gh_buf_vprintf(gh_buf *buf, const char *format, va_list ap);
-void gh_buf_clear(gh_buf *buf);
-void gh_buf_consume(gh_buf *buf, const uint8_t *end);
-void gh_buf_truncate(gh_buf *buf, size_t len);
-void gh_buf_rtruncate_at_char(gh_buf *path, char separator);
+extern int gh_buf_set(gh_buf *buf, const char *data, size_t len);
+extern int gh_buf_sets(gh_buf *buf, const char *string);
+extern int gh_buf_putc(gh_buf *buf, char c);
+extern int gh_buf_put(gh_buf *buf, const void *data, size_t len);
+extern int gh_buf_puts(gh_buf *buf, const char *string);
+extern int gh_buf_printf(gh_buf *buf, const char *format, ...)
+	__attribute__((format (printf, 2, 3)));
+extern int gh_buf_vprintf(gh_buf *buf, const char *format, va_list ap);
+extern void gh_buf_clear(gh_buf *buf);
 
-#define gh_buf_PUTS(buf, str) gh_buf_put(buf, (const uint8_t *)str, sizeof(str) - 1)
-
-static inline const char *gh_buf_cstr(const gh_buf *buf)
-{
-	return (char *)buf->ptr;
-}
-
-static inline size_t gh_buf_len(const gh_buf *buf)
-{
-	return buf->size;
-}
-
-/* Remove whitespace from the end of the buffer */
-void gh_buf_rtrim(gh_buf *buf);
-
-int gh_buf_cmp(const gh_buf *a, const gh_buf *b);
+#define gh_buf_PUTS(buf, str) gh_buf_put(buf, str, sizeof(str) - 1)
 
 #endif
