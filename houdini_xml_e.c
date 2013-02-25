@@ -4,8 +4,6 @@
 
 #include "houdini.h"
 
-#define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10) /* this is very scientific, yes */
-
 /**
  * & --> &amp;
  * < --> &lt;
@@ -62,13 +60,13 @@ static const char XML_LOOKUP_TABLE[] = {
 	5, 5, 5, 5, 5, 5, 5, 5,
 };
 
-void
-houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
+int
+houdini_escape_xml(gh_buf *ob, const char *src, size_t size)
 {
 	size_t i = 0;
 	unsigned char code = 0;
 
-	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
+	gh_buf_grow(ob, HOUDINI_ESCAPED_SIZE(size));
 
 	while (i < size) {
 		size_t start, end;
@@ -125,12 +123,14 @@ houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size)
 		}
 
 		if (end > start)
-			bufput(ob, src + start, end - start);
+			gh_buf_put(ob, src + start, end - start);
 
 		/* escaping */
 		if (end >= size)
 			break;
 
-		bufputs(ob, LOOKUP_CODES[code]);
+		gh_buf_puts(ob, LOOKUP_CODES[code]);
 	}
+
+	return 1;
 }

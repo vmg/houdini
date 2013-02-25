@@ -4,29 +4,33 @@
 
 #include "houdini.h"
 
-#define UNESCAPE_GROW_FACTOR(x) (x)
-
-void
-houdini_unescape_js(struct buf *ob, const uint8_t *src, size_t size)
+int
+houdini_unescape_js(gh_buf *ob, const char *src, size_t size)
 {
 	size_t  i = 0, org, ch;
-
-	bufgrow(ob, UNESCAPE_GROW_FACTOR(size));
 
 	while (i < size) {
 		org = i;
 		while (i < size && src[i] != '\\')
 			i++;
 
-		if (i > org)
-			bufput(ob, src + org, i - org);
+		if (likely(i > org)) {
+			if (unlikely(org == 0)) {
+				if (i >= size)
+					return 0;
+
+				gh_buf_grow(ob, HOUDINI_UNESCAPED_SIZE(size));
+			}
+
+			gh_buf_put(ob, src + org, i - org);
+		}
 
 		/* escaping */
 		if (i == size)
 			break;
 
 		if (++i == size) {
-			bufputc(ob, '\\');
+			gh_buf_putc(ob, '\\');
 			break;
 		}
 
@@ -41,14 +45,16 @@ houdini_unescape_js(struct buf *ob, const uint8_t *src, size_t size)
 		case '\'':
 		case '\"':
 		case '/':
-			bufputc(ob, ch);
+			gh_buf_putc(ob, ch);
 			i++;
 			break;
 
 		default:
-			bufputc(ob, '\\');
+			gh_buf_putc(ob, '\\');
 			break;
 		}
 	}
+
+	return 1;
 }
 

@@ -4,8 +4,6 @@
 
 #include "houdini.h"
 
-#define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10)
-
 static const char JS_ESCAPE[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
@@ -25,20 +23,26 @@ static const char JS_ESCAPE[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-void
-houdini_escape_js(struct buf *ob, const uint8_t *src, size_t size)
+int
+houdini_escape_js(gh_buf *ob, const char *src, size_t size)
 {
 	size_t  i = 0, org, ch;
 
-	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
-
 	while (i < size) {
 		org = i;
-		while (i < size && JS_ESCAPE[src[i]] == 0)
+		while (i < size && JS_ESCAPE[(int)src[i]] == 0)
 			i++;
 
-		if (i > org)
-			bufput(ob, src + org, i - org);
+		if (likely(i > org)) {
+			if (unlikely(org == 0)) {
+				if (i >= size)
+					return 0;
+
+				gh_buf_grow(ob, HOUDINI_ESCAPED_SIZE(size));
+			}
+
+			gh_buf_put(ob, src + org, i - org);
+		}
 
 		/* escaping */
 		if (i >= size)
@@ -52,9 +56,9 @@ houdini_escape_js(struct buf *ob, const uint8_t *src, size_t size)
 			 * Escape only if preceded by a lt
 			 */
 			if (i && src[i - 1] == '<')
-				bufputc(ob, '\\');
+				gh_buf_putc(ob, '\\');
 
-			bufputc(ob, ch);
+			gh_buf_putc(ob, ch);
 			break;
 
 		case '\r':
@@ -73,12 +77,14 @@ houdini_escape_js(struct buf *ob, const uint8_t *src, size_t size)
 			/*
 			 * Normal escaping
 			 */
-			bufputc(ob, '\\');
-			bufputc(ob, ch);
+			gh_buf_putc(ob, '\\');
+			gh_buf_putc(ob, ch);
 			break;
 		}
 
 		i++;
 	}
+
+	return 1;
 }
 
