@@ -46,39 +46,47 @@ static const char *HTML_ESCAPES[] = {
         "&gt;"
 };
 
-void
-houdini_escape_html0(struct buf *ob, const uint8_t *src, size_t size, int secure)
+int
+houdini_escape_html0(gh_buf *ob, const uint8_t *src, size_t size, int secure)
 {
 	size_t  i = 0, org, esc = 0;
-
-	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
 
 	while (i < size) {
 		org = i;
 		while (i < size && (esc = HTML_ESCAPE_TABLE[src[i]]) == 0)
 			i++;
 
-		if (i > org)
-			bufput(ob, src + org, i - org);
+		if (i > org) {
+			if (unlikely(org == 0)) {
+				if (i >= size)
+					return 0;
+
+				gh_buf_grow(ob, ESCAPE_GROW_FACTOR(size));
+			}
+
+			gh_buf_put(ob, src + org, i - org);
+		}
 
 		/* escaping */
-		if (i >= size)
+		if (unlikely(i >= size))
 			break;
 
 		/* The forward slash is only escaped in secure mode */
 		if (src[i] == '/' && !secure) {
-			bufputc(ob, '/');
+			gh_buf_putc(ob, '/');
 		} else {
-			bufputs(ob, HTML_ESCAPES[esc]);
+			gh_buf_puts(ob, HTML_ESCAPES[esc]);
 		}
 
 		i++;
 	}
+
+	return 1;
 }
 
-void
-houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size)
+int
+houdini_escape_html(gh_buf *ob, const uint8_t *src, size_t size)
 {
-	houdini_escape_html0(ob, src, size, 1);
+	return houdini_escape_html0(ob, src, size, 1);
 }
 

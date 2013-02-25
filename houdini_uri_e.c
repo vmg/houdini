@@ -44,16 +44,15 @@ static const char URI_SAFE[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-static void
-escape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
+static int
+escape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
 {
-	static const char hex_chars[] = "0123456789ABCDEF";
+	static const uint8_t hex_chars[] = "0123456789ABCDEF";
 	const char *safe_table = is_url ? URL_SAFE : URI_SAFE;
 
 	size_t  i = 0, org;
-	char hex_str[3];
+	uint8_t hex_str[3];
 
-	bufgrow(ob, ESCAPE_GROW_FACTOR(size));
 	hex_str[0] = '%';
 
 	while (i < size) {
@@ -61,33 +60,43 @@ escape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
 		while (i < size && safe_table[src[i]] != 0)
 			i++;
 
-		if (i > org)
-			bufput(ob, src + org, i - org);
+		if (likely(i > org)) {
+			if (unlikely(org == 0)) {
+				if (i >= size)
+					return 0;
+
+				gh_buf_grow(ob, ESCAPE_GROW_FACTOR(size));
+			}
+
+			gh_buf_put(ob, src + org, i - org);
+		}
 
 		/* escaping */
 		if (i >= size)
 			break;
 
 		if (src[i] == ' ' && is_url) {
-			bufputc(ob, '+');
+			gh_buf_putc(ob, '+');
 		} else {
 			hex_str[1] = hex_chars[(src[i] >> 4) & 0xF];
 			hex_str[2] = hex_chars[src[i] & 0xF];
-			bufput(ob, hex_str, 3);
+			gh_buf_put(ob, hex_str, 3);
 		}
 
 		i++;
 	}
+
+	return 1;
 }
 
-void
-houdini_escape_uri(struct buf *ob, const uint8_t *src, size_t size)
+int
+houdini_escape_uri(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	return escape(ob, src, size, 0);
 }
 
-void
-houdini_escape_url(struct buf *ob, const uint8_t *src, size_t size)
+int
+houdini_escape_url(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	return escape(ob, src, size, 1);
 }

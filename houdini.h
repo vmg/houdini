@@ -5,7 +5,11 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
 #include "buffer.h"
+
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
 
 #ifdef HOUDINI_USE_LOCALE
 #	define _isxdigit(c) isxdigit(c)
@@ -18,17 +22,17 @@ extern "C" {
 #	define _isdigit(c) ((c) >= '0' && (c) <= '9')
 #endif
 
-extern void houdini_escape_html(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_escape_html0(struct buf *ob, const uint8_t *src, size_t size, int secure);
-extern void houdini_unescape_html(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_escape_xml(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_escape_uri(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_escape_url(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_escape_href(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_unescape_uri(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_unescape_url(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_escape_js(struct buf *ob, const uint8_t *src, size_t size);
-extern void houdini_unescape_js(struct buf *ob, const uint8_t *src, size_t size);
+extern int houdini_escape_html(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_escape_html0(gh_buf *ob, const uint8_t *src, size_t size, int secure);
+extern int houdini_unescape_html(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_escape_xml(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_escape_uri(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_escape_url(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_escape_href(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_unescape_uri(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_unescape_url(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_escape_js(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_unescape_js(gh_buf *ob, const uint8_t *src, size_t size);
 
 #ifdef __cplusplus
 }

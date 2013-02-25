@@ -1,228 +1,175 @@
 /*
- * Copyright (c) 2008, Natacha Porté
- * Copyright (c) 2011, Vicent Martí
+ * Copyright (C) the libgit2 contributors. All rights reserved.
  *
- * Permission to use, copy, modify, and distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
- * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
- * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
- * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
- * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
- * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * This file is part of libgit2, distributed under the GNU GPL v2 with
+ * a Linking Exception. For full terms see the included COPYING file.
  */
-
-#define BUFFER_MAX_ALLOC_SIZE (1024 * 1024 * 16) //16mb
+#include <stdarg.h>
+#include <ctype.h>
+#include <string.h>
+#include <assert.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/param.h>
 
 #include "buffer.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+/* Used as default value for gh_buf->ptr so that people can always
+ * assume ptr is non-NULL and zero terminated even for new gh_bufs.
+ */
+uint8_t gh_buf__initbuf[1];
 
-/* MSVC compat */
-#if defined(_MSC_VER)
-#	define _buf_vsnprintf _vsnprintf
-#else
-#	define _buf_vsnprintf vsnprintf
-#endif
+uint8_t gh_buf__oom[1];
 
-int
-bufprefix(const struct buf *buf, const char *prefix)
+#define ENSURE_SIZE(b, d) \
+	if ((d) > buf->asize && gh_buf_grow(b, (d)) < 0)\
+		return -1;
+
+
+void gh_buf_init(gh_buf *buf, size_t initial_size)
 {
-	size_t i;
+	buf->asize = 0;
+	buf->size = 0;
+	buf->ptr = gh_buf__initbuf;
 
-	for (i = 0; i < buf->size; ++i) {
-		if (prefix[i] == 0)
-			return 0;
+	if (initial_size)
+		gh_buf_grow(buf, initial_size);
+}
 
-		if (buf->data[i] != prefix[i])
-			return buf->data[i] - prefix[i];
+int gh_buf_try_grow(gh_buf *buf, size_t target_size, bool mark_oom)
+{
+	uint8_t *new_ptr;
+	size_t new_size;
+
+	if (buf->ptr == gh_buf__oom)
+		return -1;
+
+	if (target_size <= buf->asize)
+		return 0;
+
+	if (buf->asize == 0) {
+		new_size = target_size;
+		new_ptr = NULL;
+	} else {
+		new_size = buf->asize;
+		new_ptr = buf->ptr;
 	}
+
+	/* grow the buffer size by 1.5, until it's big enough
+	 * to fit our target size */
+	while (new_size < target_size)
+		new_size = (new_size << 1) - (new_size >> 1);
+
+	/* round allocation up to multiple of 8 */
+	new_size = (new_size + 7) & ~7;
+
+	new_ptr = realloc(new_ptr, new_size);
+
+	if (!new_ptr) {
+		if (mark_oom)
+			buf->ptr = gh_buf__oom;
+		return -1;
+	}
+
+	buf->asize = new_size;
+	buf->ptr   = new_ptr;
+
+	/* truncate the existing buffer size if necessary */
+	if (buf->size >= buf->asize)
+		buf->size = buf->asize - 1;
+	buf->ptr[buf->size] = '\0';
 
 	return 0;
 }
 
-/* bufgrow: increasing the allocated size to the given value */
-int
-bufgrow(struct buf *buf, size_t neosz)
+void gh_buf_free(gh_buf *buf)
 {
-	size_t neoasz;
-	void *neodata;
-	if (!buf || !buf->unit || neosz > BUFFER_MAX_ALLOC_SIZE)
-		return BUF_ENOMEM;
+	if (!buf) return;
 
-	if (buf->asize >= neosz)
-		return BUF_OK;
+	if (buf->ptr != gh_buf__initbuf && buf->ptr != gh_buf__oom)
+		free(buf->ptr);
 
-	neoasz = buf->asize + buf->unit;
-	while (neoasz < neosz)
-		neoasz += buf->unit;
-
-	neodata = realloc(buf->data, neoasz);
-	if (!neodata)
-		return BUF_ENOMEM;
-
-	buf->data = neodata;
-	buf->asize = neoasz;
-	return BUF_OK;
+	gh_buf_init(buf, 0);
 }
 
-
-/* bufnew: allocation of a new buffer */
-struct buf *
-bufnew(size_t unit)
+void gh_buf_clear(gh_buf *buf)
 {
-	struct buf *ret;
-	ret = malloc(sizeof (struct buf));
+	buf->size = 0;
+	if (buf->asize > 0)
+		buf->ptr[0] = '\0';
+}
 
-	if (ret) {
-		ret->data = 0;
-		ret->size = ret->asize = 0;
-		ret->unit = unit;
+int gh_buf_set(gh_buf *buf, const uint8_t *data, size_t len)
+{
+	if (len == 0 || data == NULL) {
+		gh_buf_clear(buf);
+	} else {
+		if (data != buf->ptr) {
+			ENSURE_SIZE(buf, len + 1);
+			memmove(buf->ptr, data, len);
+		}
+		buf->size = len;
+		buf->ptr[buf->size] = '\0';
 	}
-	return ret;
+	return 0;
 }
 
-/* bufnullterm: NULL-termination of the string array */
-const char *
-bufcstr(struct buf *buf)
+int gh_buf_sets(gh_buf *buf, const uint8_t *string)
 {
-	if (!buf || !buf->unit)
+	return gh_buf_set(buf, string, string ? strlen((const char *)string) : 0);
+}
+
+int gh_buf_putc(gh_buf *buf, int c)
+{
+	ENSURE_SIZE(buf, buf->size + 2);
+	buf->ptr[buf->size++] = c;
+	buf->ptr[buf->size] = '\0';
+	return 0;
+}
+
+int gh_buf_put(gh_buf *buf, const uint8_t *data, size_t len)
+{
+	ENSURE_SIZE(buf, buf->size + len + 1);
+	memmove(buf->ptr + buf->size, data, len);
+	buf->size += len;
+	buf->ptr[buf->size] = '\0';
+	return 0;
+}
+
+int gh_buf_puts(gh_buf *buf, const char *string)
+{
+	assert(string);
+	return gh_buf_put(buf, (const uint8_t *)string, strlen(string));
+}
+
+uint8_t *gh_buf_detach(gh_buf *buf)
+{
+	uint8_t *data = buf->ptr;
+
+	if (buf->asize == 0 || buf->ptr == gh_buf__oom)
 		return NULL;
 
-	if (buf->size < buf->asize && buf->data[buf->size] == 0)
-		return (char *)buf->data;
+	gh_buf_init(buf, 0);
 
-	if (buf->size + 1 <= buf->asize || bufgrow(buf, buf->size + 1) == 0) {
-		buf->data[buf->size] = 0;
-		return (char *)buf->data;
+	return data;
+}
+
+void gh_buf_rtrim(gh_buf *buf)
+{
+	while (buf->size > 0) {
+		if (!isspace(buf->ptr[buf->size - 1]))
+			break;
+
+		buf->size--;
 	}
 
-	return NULL;
+	buf->ptr[buf->size] = '\0';
 }
 
-/* bufprintf: formatted printing to a buffer */
-void
-bufprintf(struct buf *buf, const char *fmt, ...)
+int gh_buf_cmp(const gh_buf *a, const gh_buf *b)
 {
-	va_list ap;
-	if (!buf || !buf->unit)
-		return;
-
-	va_start(ap, fmt);
-	vbufprintf(buf, fmt, ap);
-	va_end(ap);
+	int result = memcmp(a->ptr, b->ptr, MIN(a->size, b->size));
+	return (result != 0) ? result :
+		(a->size < b->size) ? -1 : (a->size > b->size) ? 1 : 0;
 }
-
-/* bufput: appends raw data to a buffer */
-void
-bufput(struct buf *buf, const void *data, size_t len)
-{
-	if (!buf)
-		return;
-
-	if (buf->size + len > buf->asize && bufgrow(buf, buf->size + len) < 0)
-		return;
-
-	memcpy(buf->data + buf->size, data, len);
-	buf->size += len;
-}
-
-/* bufputs: appends a NUL-terminated string to a buffer */
-void
-bufputs(struct buf *buf, const char *str)
-{
-	bufput(buf, str, strlen(str));
-}
-
-
-/* bufputc: appends a single uint8_t to a buffer */
-void
-bufputc(struct buf *buf, int c)
-{
-	if (!buf)
-		return;
-
-	if (buf->size + 1 > buf->asize && bufgrow(buf, buf->size + 1) < 0)
-		return;
-
-	buf->data[buf->size] = c;
-	buf->size += 1;
-}
-
-/* bufrelease: decrease the reference count and free the buffer if needed */
-void
-bufrelease(struct buf *buf)
-{
-	if (!buf)
-		return;
-
-	free(buf->data);
-	free(buf);
-}
-
-
-/* bufreset: frees internal data of the buffer */
-void
-bufreset(struct buf *buf)
-{
-	if (!buf)
-		return;
-
-	free(buf->data);
-	buf->data = NULL;
-	buf->size = buf->asize = 0;
-}
-
-/* bufslurp: removes a given number of bytes from the head of the array */
-void
-bufslurp(struct buf *buf, size_t len)
-{
-	if (!buf || !buf->unit || len <= 0)
-		return;
-
-	if (len >= buf->size) {
-		buf->size = 0;
-		return;
-	}
-
-	buf->size -= len;
-	memmove(buf->data, buf->data + len, buf->size);
-}
-
-/* vbufprintf: stdarg variant of formatted printing into a buffer */
-void
-vbufprintf(struct buf *buf, const char *fmt, va_list ap)
-{
-	int n;
-
-	if (buf == 0 || (buf->size >= buf->asize && bufgrow(buf, buf->size + 1)) < 0)
-		return;
-
-	n = _buf_vsnprintf((char *)buf->data + buf->size, buf->asize - buf->size, fmt, ap);
-
-	if (n < 0) {
-#ifdef _MSC_VER
-		n = _vscprintf(fmt, ap);
-#else
-		return;
-#endif
-	}
-
-	if ((size_t)n >= buf->asize - buf->size) {
-		if (bufgrow(buf, buf->size + n + 1) < 0)
-			return;
-
-		n = _buf_vsnprintf((char *)buf->data + buf->size, buf->asize - buf->size, fmt, ap);
-	}
-
-	if (n < 0)
-		return;
-
-	buf->size += n;
-}
-

@@ -7,20 +7,26 @@
 #define UNESCAPE_GROW_FACTOR(x) (x)
 #define hex2c(c) ((c | 32) % 39 - 9)
 
-static void
-unescape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
+static int
+unescape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
 {
 	size_t  i = 0, org;
-
-	bufgrow(ob, UNESCAPE_GROW_FACTOR(size));
 
 	while (i < size) {
 		org = i;
 		while (i < size && src[i] != '%')
 			i++;
 
-		if (i > org)
-			bufput(ob, src + org, i - org);
+		if (likely(i > org)) {
+			if (unlikely(org == 0)) {
+				if (i >= size)
+					return 0;
+
+				gh_buf_grow(ob, UNESCAPE_GROW_FACTOR(size));
+			}
+
+			gh_buf_put(ob, src + org, i - org);
+		}
 
 		/* escaping */
 		if (i >= size)
@@ -30,28 +36,30 @@ unescape(struct buf *ob, const uint8_t *src, size_t size, int is_url)
 
 		if (i + 1 < size && _isxdigit(src[i]) && _isxdigit(src[i + 1])) {
 			unsigned char new_char = (hex2c(src[i]) << 4) + hex2c(src[i + 1]);
-			bufputc(ob, new_char);
+			gh_buf_putc(ob, new_char);
 			i += 2;
 		} else {
-			bufputc(ob, '%');
+			gh_buf_putc(ob, '%');
 		}
 	}
 
 	if (is_url) {
-		char *find = (char *)bufcstr(ob);
+		char *find = (char *)gh_buf_cstr(ob);
 		while ((find = strchr(find, '+')) != NULL)
 			*find = ' ';
 	}
+
+	return 1;
 }
 
-void
-houdini_unescape_uri(struct buf *ob, const uint8_t *src, size_t size)
+int
+houdini_unescape_uri(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	return unescape(ob, src, size, 0);
 }
 
-void
-houdini_unescape_url(struct buf *ob, const uint8_t *src, size_t size)
+int
+houdini_unescape_url(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	return unescape(ob, src, size, 1);
 }
