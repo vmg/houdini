@@ -4,8 +4,6 @@
 
 #include "houdini.h"
 
-#define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10) /* this is very scientific, yes */
-
 /**
  * & --> &amp;
  * < --> &lt;
@@ -68,7 +66,7 @@ houdini_escape_xml(gh_buf *ob, const uint8_t *src, size_t size)
 	size_t i = 0;
 	unsigned char code = 0;
 
-	gh_buf_grow(ob, ESCAPE_GROW_FACTOR(size));
+	gh_buf_grow(ob, HOUDINI_ESCAPED_SIZE(size));
 
 	while (i < size) {
 		size_t start, end;

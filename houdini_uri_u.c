@@ -4,7 +4,6 @@
 
 #include "houdini.h"
 
-#define UNESCAPE_GROW_FACTOR(x) (x)
 #define hex2c(c) ((c | 32) % 39 - 9)
 
 static int
@@ -22,7 +21,7 @@ unescape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
 				if (i >= size)
 					return 0;
 
-				gh_buf_grow(ob, UNESCAPE_GROW_FACTOR(size));
+				gh_buf_grow(ob, HOUDINI_UNESCAPED_SIZE(size));
 			}
 
 			gh_buf_put(ob, src + org, i - org);

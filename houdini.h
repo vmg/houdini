@@ -22,6 +22,9 @@ extern "C" {
 #	define _isdigit(c) ((c) >= '0' && (c) <= '9')
 #endif
 
+#define HOUDINI_ESCAPED_SIZE(x) (((x) * 12) / 10)
+#define HOUDINI_UNESCAPED_SIZE(x) (x)
+
 extern int houdini_escape_html(gh_buf *ob, const uint8_t *src, size_t size);
 extern int houdini_escape_html0(gh_buf *ob, const uint8_t *src, size_t size, int secure);
 extern int houdini_unescape_html(gh_buf *ob, const uint8_t *src, size_t size);

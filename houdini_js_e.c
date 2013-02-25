@@ -4,8 +4,6 @@
 
 #include "houdini.h"
 
-#define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10)
-
 static const char JS_ESCAPE[] = {
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
@@ -40,7 +38,7 @@ houdini_escape_js(gh_buf *ob, const uint8_t *src, size_t size)
 				if (i >= size)
 					return 0;
 
-				gh_buf_grow(ob, ESCAPE_GROW_FACTOR(size));
+				gh_buf_grow(ob, HOUDINI_ESCAPED_SIZE(size));
 			}
 
 			gh_buf_put(ob, src + org, i - org);

@@ -4,8 +4,6 @@
 
 #include "houdini.h"
 
-#define ESCAPE_GROW_FACTOR(x) (((x) * 12) / 10) /* this is very scientific, yes */
-
 /**
  * According to the OWASP rules:
  *
@@ -61,7 +59,7 @@ houdini_escape_html0(gh_buf *ob, const uint8_t *src, size_t size, int secure)
 				if (i >= size)
 					return 0;
 
-				gh_buf_grow(ob, ESCAPE_GROW_FACTOR(size));
+				gh_buf_grow(ob, HOUDINI_ESCAPED_SIZE(size));
 			}
 
 			gh_buf_put(ob, src + org, i - org);
