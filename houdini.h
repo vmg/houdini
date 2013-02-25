@@ -25,17 +25,17 @@ extern "C" {
 #define HOUDINI_ESCAPED_SIZE(x) (((x) * 12) / 10)
 #define HOUDINI_UNESCAPED_SIZE(x) (x)
 
-extern int houdini_escape_html(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_escape_html0(gh_buf *ob, const uint8_t *src, size_t size, int secure);
-extern int houdini_unescape_html(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_escape_xml(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_escape_uri(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_escape_url(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_escape_href(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_unescape_uri(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_unescape_url(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_escape_js(gh_buf *ob, const uint8_t *src, size_t size);
-extern int houdini_unescape_js(gh_buf *ob, const uint8_t *src, size_t size);
+extern int houdini_escape_html(gh_buf *ob, const char *src, size_t size);
+extern int houdini_escape_html0(gh_buf *ob, const char *src, size_t size, int secure);
+extern int houdini_unescape_html(gh_buf *ob, const char *src, size_t size);
+extern int houdini_escape_xml(gh_buf *ob, const char *src, size_t size);
+extern int houdini_escape_uri(gh_buf *ob, const char *src, size_t size);
+extern int houdini_escape_url(gh_buf *ob, const char *src, size_t size);
+extern int houdini_escape_href(gh_buf *ob, const char *src, size_t size);
+extern int houdini_unescape_uri(gh_buf *ob, const char *src, size_t size);
+extern int houdini_unescape_url(gh_buf *ob, const char *src, size_t size);
+extern int houdini_escape_js(gh_buf *ob, const char *src, size_t size);
+extern int houdini_unescape_js(gh_buf *ob, const char *src, size_t size);
 
 #ifdef __cplusplus
 }

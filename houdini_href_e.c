@@ -49,17 +49,17 @@ static const char HREF_SAFE[] = {
 };
 
 int
-houdini_escape_href(gh_buf *ob, const uint8_t *src, size_t size)
+houdini_escape_href(gh_buf *ob, const char *src, size_t size)
 {
-	static const uint8_t hex_chars[] = "0123456789ABCDEF";
+	static const char hex_chars[] = "0123456789ABCDEF";
 	size_t  i = 0, org;
-	uint8_t hex_str[3];
+	char hex_str[3];
 
 	hex_str[0] = '%';
 
 	while (i < size) {
 		org = i;
-		while (i < size && HREF_SAFE[src[i]] != 0)
+		while (i < size && HREF_SAFE[(int)src[i]] != 0)
 			i++;
 
 		if (likely(i > org)) {

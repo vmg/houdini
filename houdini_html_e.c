@@ -45,13 +45,13 @@ static const char *HTML_ESCAPES[] = {
 };
 
 int
-houdini_escape_html0(gh_buf *ob, const uint8_t *src, size_t size, int secure)
+houdini_escape_html0(gh_buf *ob, const char *src, size_t size, int secure)
 {
 	size_t  i = 0, org, esc = 0;
 
 	while (i < size) {
 		org = i;
-		while (i < size && (esc = HTML_ESCAPE_TABLE[src[i]]) == 0)
+		while (i < size && (esc = HTML_ESCAPE_TABLE[(int)src[i]]) == 0)
 			i++;
 
 		if (i > org) {
@@ -83,7 +83,7 @@ houdini_escape_html0(gh_buf *ob, const uint8_t *src, size_t size, int secure)
 }
 
 int
-houdini_escape_html(gh_buf *ob, const uint8_t *src, size_t size)
+houdini_escape_html(gh_buf *ob, const char *src, size_t size)
 {
 	return houdini_escape_html0(ob, src, size, 1);
 }

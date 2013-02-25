@@ -7,7 +7,7 @@
 #define hex2c(c) ((c | 32) % 39 - 9)
 
 static int
-unescape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
+unescape(gh_buf *ob, const char *src, size_t size, int is_url)
 {
 	size_t  i = 0, org;
 
@@ -52,13 +52,13 @@ unescape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
 }
 
 int
-houdini_unescape_uri(gh_buf *ob, const uint8_t *src, size_t size)
+houdini_unescape_uri(gh_buf *ob, const char *src, size_t size)
 {
 	return unescape(ob, src, size, 0);
 }
 
 int
-houdini_unescape_url(gh_buf *ob, const uint8_t *src, size_t size)
+houdini_unescape_url(gh_buf *ob, const char *src, size_t size)
 {
 	return unescape(ob, src, size, 1);
 }

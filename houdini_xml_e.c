@@ -61,7 +61,7 @@ static const char XML_LOOKUP_TABLE[] = {
 };
 
 int
-houdini_escape_xml(gh_buf *ob, const uint8_t *src, size_t size)
+houdini_escape_xml(gh_buf *ob, const char *src, size_t size)
 {
 	size_t i = 0;
 	unsigned char code = 0;

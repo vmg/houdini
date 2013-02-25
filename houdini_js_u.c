@@ -5,7 +5,7 @@
 #include "houdini.h"
 
 int
-houdini_unescape_js(gh_buf *ob, const uint8_t *src, size_t size)
+houdini_unescape_js(gh_buf *ob, const char *src, size_t size)
 {
 	size_t  i = 0, org, ch;
 
