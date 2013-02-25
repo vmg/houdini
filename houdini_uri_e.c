@@ -43,19 +43,19 @@ static const char URI_SAFE[] = {
 };
 
 static int
-escape(gh_buf *ob, const char *src, size_t size, int is_url)
+escape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
 {
-	static const char hex_chars[] = "0123456789ABCDEF";
+	static const uint8_t hex_chars[] = "0123456789ABCDEF";
 	const char *safe_table = is_url ? URL_SAFE : URI_SAFE;
 
 	size_t  i = 0, org;
-	char hex_str[3];
+	uint8_t hex_str[3];
 
 	hex_str[0] = '%';
 
 	while (i < size) {
 		org = i;
-		while (i < size && safe_table[(int)src[i]] != 0)
+		while (i < size && safe_table[src[i]] != 0)
 			i++;
 
 		if (likely(i > org)) {
@@ -88,13 +88,13 @@ escape(gh_buf *ob, const char *src, size_t size, int is_url)
 }
 
 int
-houdini_escape_uri(gh_buf *ob, const char *src, size_t size)
+houdini_escape_uri(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	return escape(ob, src, size, 0);
 }
 
 int
-houdini_escape_url(gh_buf *ob, const char *src, size_t size)
+houdini_escape_url(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	return escape(ob, src, size, 1);
 }

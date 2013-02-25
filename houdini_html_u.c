@@ -16,7 +16,7 @@ gh_buf_put_utf8(gh_buf *ob, int c)
 	else if (c < 0x800) {
 		unichar[0] = 192 + (c / 64);
 		unichar[1] = 128 + (c % 64);
-		gh_buf_put(ob, (char *)unichar, 2);
+		gh_buf_put(ob, unichar, 2);
 	}
 	else if (c - 0xd800u < 0x800) {
 		gh_buf_putc(ob, '?');
@@ -25,14 +25,14 @@ gh_buf_put_utf8(gh_buf *ob, int c)
 		unichar[0] = 224 + (c / 4096);
 		unichar[1] = 128 + (c / 64) % 64;
 		unichar[2] = 128 + (c % 64);
-		gh_buf_put(ob, (char *)unichar, 3);
+		gh_buf_put(ob, unichar, 3);
 	}
 	else if (c < 0x110000) {
 		unichar[0] = 240 + (c / 262144);
 		unichar[1] = 128 + (c / 4096) % 64;
 		unichar[2] = 128 + (c / 64) % 64;
 		unichar[3] = 128 + (c % 64);
-		gh_buf_put(ob, (char *)unichar, 4);
+		gh_buf_put(ob, unichar, 4);
 	}
 	else {
 		gh_buf_putc(ob, '?');
@@ -40,7 +40,7 @@ gh_buf_put_utf8(gh_buf *ob, int c)
 }
 
 static size_t
-unescape_ent(gh_buf *ob, const char *src, size_t size)
+unescape_ent(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	size_t i = 0;
 
@@ -75,7 +75,7 @@ unescape_ent(gh_buf *ob, const char *src, size_t size)
 				const struct html_ent *entity = find_entity((char *)src, i);
 
 				if (entity != NULL) {
-					gh_buf_put(ob, (char *)entity->utf8, entity->utf8_len);
+					gh_buf_put(ob, entity->utf8, entity->utf8_len);
 					return i + 1;
 				}
 
@@ -89,7 +89,7 @@ unescape_ent(gh_buf *ob, const char *src, size_t size)
 }
 
 int
-houdini_unescape_html(gh_buf *ob, const char *src, size_t size)
+houdini_unescape_html(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	size_t  i = 0, org;
 

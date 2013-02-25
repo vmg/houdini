@@ -24,13 +24,13 @@ static const char JS_ESCAPE[] = {
 };
 
 int
-houdini_escape_js(gh_buf *ob, const char *src, size_t size)
+houdini_escape_js(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	size_t  i = 0, org, ch;
 
 	while (i < size) {
 		org = i;
-		while (i < size && JS_ESCAPE[(int)src[i]] == 0)
+		while (i < size && JS_ESCAPE[src[i]] == 0)
 			i++;
 
 		if (likely(i > org)) {
