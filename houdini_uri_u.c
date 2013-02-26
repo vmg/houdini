@@ -18,7 +18,7 @@ unescape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
 
 		if (likely(i > org)) {
 			if (unlikely(org == 0)) {
-				if (i >= size)
+				if (i >= size && !is_url)
 					return 0;
 
 				gh_buf_grow(ob, HOUDINI_UNESCAPED_SIZE(size));
