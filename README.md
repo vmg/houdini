@@ -37,11 +37,23 @@ UTF-8 strings. If you are using another encoding, you should probably transcode
 Do you really need docs for this?
 
 ~~~~ c
-extern void houdini_escape_html(struct buf *ob, const char *src, size_t size);
-extern void houdini_unescape_html(struct buf *ob, const char *src, size_t size);
-extern void houdini_escape_uri(struct buf *ob, const char *src, size_t size);
-extern void houdini_escape_url(struct buf *ob, const char *src, size_t size);
-extern void houdini_unescape_uri(struct buf *ob, const char *src, size_t size);
-extern void houdini_unescape_url(struct buf *ob, const char *src, size_t size);
+int houdini_escape_html(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_escape_html0(gh_buf *ob, const uint8_t *src, size_t size, int secure);
+int houdini_unescape_html(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_escape_xml(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_escape_uri(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_escape_url(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_escape_href(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_unescape_uri(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_unescape_url(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_escape_js(gh_buf *ob, const uint8_t *src, size_t size);
+int houdini_unescape_js(gh_buf *ob, const uint8_t *src, size_t size);
 ~~~~
 
+Pass your string. It'll get escaped/unescaped in the target buffer, and the call will return 1.
+If the given string has nothing to escape/unescape, the call will return 0 and the
+output buffer will be empty.
+
+### Questions?
+
+Open an issue. Or shout angrily at me on Twitter ([@vmg](https://twitter.com/vmg)).
