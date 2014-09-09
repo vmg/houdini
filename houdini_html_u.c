@@ -57,7 +57,7 @@ unescape_ent(gh_buf *ob, const uint8_t *src, size_t size)
 				codepoint = (codepoint * 16) + ((src[i] | 32) % 39 - 9);
 		}
 
-		if (i < size && src[i] == ';') {
+		if (i < size && src[i] == ';' && codepoint) {
 			gh_buf_put_utf8(ob, codepoint);
 			return i + 1;
 		}
