@@ -94,7 +94,7 @@ houdini_escape_uri(gh_buf *ob, const uint8_t *src, size_t size)
 }
 
 int
-houdini_escape_url_component(gh_buf *ob, const uint8_t *src, size_t size)
+houdini_escape_uri_component(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	return escape(ob, src, size, URL_SAFE, false);
 }

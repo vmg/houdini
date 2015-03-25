@@ -55,7 +55,7 @@ houdini_unescape_uri(gh_buf *ob, const uint8_t *src, size_t size)
 }
 
 int
-houdini_unescape_url_component(gh_buf *ob, const uint8_t *src, size_t size)
+houdini_unescape_uri_component(gh_buf *ob, const uint8_t *src, size_t size)
 {
 	return unescape(ob, src, size, false);
 }
