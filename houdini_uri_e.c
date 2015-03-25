@@ -43,10 +43,10 @@ static const char URI_SAFE[] = {
 };
 
 static int
-escape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
+escape(gh_buf *ob, const uint8_t *src, size_t size,
+	const char *safe_table, bool escape_plus)
 {
 	static const uint8_t hex_chars[] = "0123456789ABCDEF";
-	const char *safe_table = is_url ? URL_SAFE : URI_SAFE;
 
 	size_t  i = 0, org;
 	uint8_t hex_str[3];
@@ -73,7 +73,7 @@ escape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
 		if (i >= size)
 			break;
 
-		if (src[i] == ' ' && is_url) {
+		if (src[i] == ' ' && escape_plus) {
 			gh_buf_putc(ob, '+');
 		} else {
 			hex_str[1] = hex_chars[(src[i] >> 4) & 0xF];
@@ -90,12 +90,18 @@ escape(gh_buf *ob, const uint8_t *src, size_t size, int is_url)
 int
 houdini_escape_uri(gh_buf *ob, const uint8_t *src, size_t size)
 {
-	return escape(ob, src, size, 0);
+	return escape(ob, src, size, URI_SAFE, false);
+}
+
+int
+houdini_escape_uri_component(gh_buf *ob, const uint8_t *src, size_t size)
+{
+	return escape(ob, src, size, URL_SAFE, false);
 }
 
 int
 houdini_escape_url(gh_buf *ob, const uint8_t *src, size_t size)
 {
-	return escape(ob, src, size, 1);
+	return escape(ob, src, size, URL_SAFE, true);
 }
 
